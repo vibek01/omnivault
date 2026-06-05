@@ -1,0 +1,134 @@
+'use client'
+
+import { useState } from 'react'
+
+interface IngestPanelProps {
+  onClose: () => void
+  onSuccess: () => void
+  initialContent?: string
+  initialTab?: 'text' | 'link'
+  folderId?: string
+  folderName?: string
+}
+
+export default function IngestPanel({ onClose, onSuccess, initialContent = '', initialTab = 'text', folderId, folderName }: IngestPanelProps) {
+  const [tab, setTab] = useState<'text' | 'link'>(initialTab)
+  const [content, setContent] = useState(initialContent)
+  const [tags, setTags] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async () => {
+    if (!content.trim()) return
+    setSubmitting(true)
+    setError('')
+
+    try {
+      const tagList = tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: tab, content: content.trim(), tags: tagList, folderId }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save')
+
+      setContent('')
+      setTags('')
+      onSuccess()
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="ingest-panel">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 }}>
+          ✨ Quick Capture {folderName && folderName !== 'Main Vault' ? `to ${folderName}` : ''}
+        </h3>
+        <button className="btn btn-icon" onClick={onClose} aria-label="Close panel">✕</button>
+      </div>
+
+      <div className="ingest-tabs">
+        <button
+          id="ingest-tab-text"
+          className={`ingest-tab ${tab === 'text' ? 'active' : ''}`}
+          onClick={() => setTab('text')}
+        >
+          📝 Note
+        </button>
+        <button
+          id="ingest-tab-link"
+          className={`ingest-tab ${tab === 'link' ? 'active' : ''}`}
+          onClick={() => setTab('link')}
+        >
+          🔗 Link
+        </button>
+      </div>
+
+      {tab === 'text' ? (
+        <>
+          <textarea
+            id="ingest-text-input"
+            className="ingest-textarea"
+            placeholder="Paste a note, message snippet, code block, or anything you want to remember..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            autoFocus
+          />
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, marginBottom: 16 }}>
+            ✨ Markdown formatting is fully supported (e.g. **bold**, - lists, `code`)
+          </div>
+        </>
+      ) : (
+        <input
+          id="ingest-link-input"
+          className="ingest-input"
+          type="url"
+          placeholder="https://amazon.in/product/... or any URL"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          autoFocus
+        />
+      )}
+
+      <div className="tags-input-wrap">
+        <div className="tags-input-label">Tags (comma separated, optional)</div>
+        <input
+          id="ingest-tags-input"
+          className="ingest-input"
+          placeholder="e.g. shopping, whatsapp, work"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p style={{ color: '#f87171', fontSize: 13, marginTop: 10 }}>⚠️ {error}</p>
+      )}
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button
+          id="ingest-submit-btn"
+          className="btn btn-primary"
+          onClick={handleSubmit}
+          disabled={submitting || !content.trim()}
+        >
+          {submitting
+            ? tab === 'link' ? '🔍 Fetching preview…' : '💾 Saving…'
+            : tab === 'link' ? '🔗 Save Link' : '📝 Save Note'}
+        </button>
+      </div>
+    </div>
+  )
+}

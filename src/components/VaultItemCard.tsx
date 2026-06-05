@@ -1,0 +1,352 @@
+'use client'
+
+import Image from 'next/image'
+import type { IVaultItem } from '@/models/VaultItem'
+
+interface VaultItemCardProps {
+  item: IVaultItem & { _id: string }
+  onOpen: (item: IVaultItem & { _id: string }) => void
+  onDelete: (id: string) => void
+}
+
+function formatDate(date: Date | string): string {
+  const d = new Date(date)
+  const now = new Date()
+  const diffMs = now.getTime() - d.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  const diffHours = Math.floor(diffMins / 60)
+  if (diffHours < 24) return `${diffHours}h ago`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays}d ago`
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatBytes(bytes?: number): string {
+  if (!bytes) return ''
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function getDocIcon(format?: string): string {
+  if (!format) return '📄'
+  const f = format.toLowerCase()
+  if (f === 'pdf') return '📕'
+  if (['doc', 'docx'].includes(f)) return '📄'
+  if (['xls', 'xlsx'].includes(f)) return '📊'
+  if (['ppt', 'pptx'].includes(f)) return '📊'
+  if (['zip', 'rar', '7z'].includes(f)) return '📦'
+  return '📄'
+}
+
+import React, { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { togglePinAction } from '@/actions/pinItem'
+
+type CastItem = IVaultItem & { _id: string }
+
+export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardProps) {
+  const [copied, setCopied] = useState(false)
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirm('Delete this item? The file will also be removed from Cloudinary.')) {
+      onDelete(item._id)
+    }
+  }
+
+  const isPdf = item.type === 'document' && (
+    item.metadata?.format?.toLowerCase() === 'pdf' || 
+    item.metadata?.originalFilename?.toLowerCase().endsWith('.pdf') || 
+    item.cloudinaryUrl?.toLowerCase().endsWith('.pdf')
+  )
+
+  const cardSizeClass = ['text', 'link'].includes(item.type) || (item.type === 'document' && !isPdf) 
+    ? 'vault-card-small' 
+    : 'vault-card-large'
+
+  const isPassword = item.type === 'text' && !!item.metadata?.credentials?.password
+  const typeBadgeClass = isPassword
+    ? `type-badge type-badge-password`
+    : `type-badge type-badge-${item.type}`
+
+  const renderContent = () => {
+    if (item.type === 'image') {
+      return (
+        <>
+          <div className="card-image-wrap" style={{ flex: 1, position: 'relative' }}>
+            {item.cloudinaryUrl ? (
+              // Use Cloudinary's auto-format, auto-quality, width-capped URL
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.cloudinaryUrl.replace('/upload/', '/upload/f_auto,q_auto:good,w_800/')}
+                alt={item.metadata?.originalFilename ?? 'Image'}
+                loading="lazy"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🖼️</div>
+            )}
+            <div className="card-image-overlay" />
+          </div>
+          {item.metadata?.originalFilename && (
+            <div style={{ padding: '10px 16px 4px', fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {item.metadata.originalFilename}
+            </div>
+          )}
+        </>
+      )
+    }
+
+    if (item.type === 'video') {
+      return (
+        <div className="card-video-thumb" style={{ flex: 1, position: 'relative' }}>
+          {item.cloudinaryUrl ? (
+            // Generate a poster frame from Cloudinary
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.cloudinaryUrl.replace('/upload/', '/upload/so_0,f_jpg,q_auto:good,w_640/')}
+              alt={item.metadata?.originalFilename ?? 'Video thumbnail'}
+              loading="lazy"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(236,72,153,0.1)' }} />
+          )}
+          <div className="play-icon">▶</div>
+        </div>
+      )
+    }
+
+    if (item.type === 'link') {
+      const hasPreview = Boolean(item.metadata?.previewImage) || (item.metadata?.title && item.metadata?.title !== item.metadata?.domain)
+      return hasPreview ? (
+        <div className="card-link-preview">
+          {item.metadata?.previewImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              className="link-preview-image"
+              src={item.metadata.previewImage}
+              alt={item.metadata.title ?? ''}
+              loading="lazy"
+            />
+          )}
+          <div className="link-preview-content">
+            <div className="link-title">{item.metadata?.title}</div>
+            {item.metadata?.description && (
+              <div className="link-description">{item.metadata.description}</div>
+            )}
+            <div className="link-domain">
+              🌐 {item.metadata?.siteName ?? item.metadata?.domain}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="link-url-raw">
+          <div className="link-url-raw-inner">
+            🔗 {item.content}
+          </div>
+        </div>
+      )
+    }
+
+    if (item.type === 'text') {
+      const hasCreds = item.metadata?.credentials?.password
+      return (
+        <div className="card-text-content markdown-body" style={{ paddingBottom: hasCreds ? 8 : 16 }}>
+          <div className="card-text-content-inner">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {item.content}
+            </ReactMarkdown>
+          </div>
+          {hasCreds && (
+            <div style={{ marginTop: 'auto', paddingTop: 8 }}>
+              <div 
+                style={{ 
+                  display: 'flex', alignItems: 'center', gap: '8px', 
+                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  padding: '6px 10px', borderRadius: '100px'
+                }}
+              >
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🔑 Pass</span>
+                {item.metadata.credentials?.username && (
+                  <span style={{ fontSize: '12px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90px' }}>
+                    {item.metadata.credentials.username}
+                  </span>
+                )}
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation()
+                    navigator.clipboard.writeText(item.metadata.credentials?.password || '')
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                  }} 
+                  className="btn-icon" 
+                  style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 8px', background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent-primary)', borderRadius: '100px' }}
+                  title="Copy password"
+                >
+                  {copied ? '✅ Copied' : '📋 Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    if (item.type === 'document') {
+      if (isPdf && item.cloudinaryUrl) {
+        return (
+          <div className="card-document" style={{ padding: 0, flexDirection: 'column', flex: 1, alignItems: 'stretch' }}>
+            <div style={{ flex: 1, overflow: 'hidden', position: 'relative', width: '100%', pointerEvents: 'none' }}>
+              <iframe
+                src={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}`}
+                style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                title={item.metadata?.originalFilename}
+                tabIndex={-1}
+              />
+              <div style={{ position: 'absolute', inset: 0, zIndex: 10 }} />
+            </div>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface-sunken)' }}>
+              <div className="doc-name" style={{ fontSize: 13, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                📕 {item.metadata?.originalFilename ?? item.content}
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      return (
+        <div className="card-document">
+          <div className="doc-icon">{getDocIcon(item.metadata?.format)}</div>
+          <div>
+            <div className="doc-name">{item.metadata?.originalFilename ?? item.content}</div>
+            <div className="doc-meta">
+              {item.metadata?.format?.toUpperCase()} {item.metadata?.fileSize ? `· ${formatBytes(item.metadata.fileSize)}` : ''}
+            </div>
+            {item.cloudinaryUrl && (
+              <a
+                href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1`}
+                target="_self"
+                rel="noopener noreferrer"
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 10, display: 'inline-flex' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                ⬇ Download
+              </a>
+            )}
+          </div>
+        </div>
+      )
+    }
+  }
+
+  return (
+    <div
+      className={`vault-card ${cardSizeClass}`}
+      style={{ position: 'relative' }}
+      role="article"
+      tabIndex={0}
+      draggable={true}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', item._id)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      onClick={(e) => {
+        if (e.metaKey || e.ctrlKey) {
+          if (item.type === 'link') {
+            window.open(item.content, '_blank')
+            return
+          } else if (item.type === 'text') {
+            const urlMatch = item.content.match(/(https?:\/\/[^\s]+)/)
+            if (urlMatch) {
+              window.open(urlMatch[1], '_blank')
+              return
+            }
+          }
+        }
+        onOpen(item)
+      }}
+      onKeyDown={(e) => e.key === 'Enter' && onOpen(item)}
+      aria-label={`${item.type} item: ${item.metadata?.title ?? item.metadata?.originalFilename ?? item.content?.slice(0, 40)}`}
+    >
+      {/* Card header */}
+      <div className="card-header">
+        <div className="card-meta">
+          <span className={typeBadgeClass}>{isPassword ? 'password' : item.type}</span>
+          <span className="card-time">{formatDate(item.createdAt)}</span>
+        </div>
+        <div className="card-actions">
+          <button
+            className="btn-icon"
+            style={{ padding: '4px 8px', fontSize: 13, opacity: item.isPinned ? 1 : 0.4 }}
+            onClick={async (e) => {
+              e.stopPropagation()
+              await togglePinAction(item._id, !item.isPinned)
+              window.dispatchEvent(new Event('vault-refresh'))
+            }}
+            aria-label={item.isPinned ? "Unpin item" : "Pin item"}
+            title={item.isPinned ? "Unpin item" : "Pin item"}
+          >
+            {item.isPinned ? '📌' : '📍'}
+          </button>
+          {item.cloudinaryUrl ? (
+            <a
+              href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1` : item.cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/')}
+              target={item.type === 'document' ? "_self" : "_blank"}
+              rel="noopener noreferrer"
+              download
+              className="btn-icon"
+              title="Download file"
+              aria-label="Download file"
+              style={{ padding: '4px 8px', fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              ⬇️
+            </a>
+          ) : (
+            <button
+              className="btn-icon"
+              style={{ padding: '4px 8px', fontSize: 13 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                const url = item.content
+                if (url) {
+                  navigator.clipboard.writeText(url)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }
+              }}
+              aria-label="Copy link"
+              title="Copy link"
+            >
+              {copied ? '✅' : '📋'}
+            </button>
+          )}
+          <button
+            className="btn-icon"
+            style={{ padding: '4px 8px', fontSize: 13 }}
+            onClick={handleDelete}
+            aria-label="Delete item"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+
+      {/* Type-specific content */}
+      {renderContent()}
+
+      {/* Tags */}
+      {item.tags && item.tags.length > 0 && (
+        <div className="card-tags">
+          {item.tags.map((t) => (
+            <span key={t} className="tag">#{t}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
