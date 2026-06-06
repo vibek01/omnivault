@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import type { Session } from 'next-auth'
 import Image from 'next/image'
+import CreateFolderModal from './CreateFolderModal'
 
 interface SidebarProps {
   session: Session
@@ -246,7 +247,7 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
         <button 
           className="btn-icon" 
           style={{ padding: 4, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-          onClick={() => setIsCreatingFolder(!isCreatingFolder)}
+          onClick={() => setIsCreatingFolder(true)}
           title="New Folder"
         >
           +
@@ -254,27 +255,19 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
       </div>
 
       {isCreatingFolder && (
-        <div style={{ padding: '0 16px', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input
-              autoFocus
-              className="ingest-input"
-              style={{ flex: 1, minWidth: 0, padding: '4px 8px', fontSize: 13, margin: 0 }}
-              placeholder="Folder name..."
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreateFolder()
-                if (e.key === 'Escape') setIsCreatingFolder(false)
-              }}
-            />
-            <button className="btn btn-primary" style={{ padding: '4px 8px', minWidth: 40 }} onClick={handleCreateFolder}>✓</button>
-          </div>
-          <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-            <input type="checkbox" checked={isNewFolderLocked} onChange={e => setIsNewFolderLocked(e.target.checked)} />
-            🔒 Require Touch ID
-          </label>
-        </div>
+        <CreateFolderModal 
+          onClose={() => setIsCreatingFolder(false)}
+          onCreate={async (name, locked) => {
+            const res = await fetch('/api/folders', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, isLocked: locked })
+            })
+            if (!res.ok) throw new Error('Failed to create folder')
+            await refreshFolders()
+            setIsCreatingFolder(false)
+          }}
+        />
       )}
 
       <div style={{ maxHeight: '200px', overflowY: 'auto', overflowX: 'hidden' }}>
@@ -296,10 +289,26 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
           <span className="nav-item-label">Main Vault</span>
         </div>
 
+        <div 
+          className="nav-item" 
+          onClick={() => setActiveFolderId && setActiveFolderId('pinned')}
+          style={{ 
+            cursor: 'pointer', 
+            background: activeFolderId === 'pinned' ? 'var(--accent-primary-alpha-12)' : 'transparent',
+            color: activeFolderId === 'pinned' ? 'var(--accent-primary)' : 'inherit',
+            border: activeFolderId === 'pinned' ? '1px solid var(--accent-primary-alpha-25)' : '1px solid transparent',
+            marginTop: 4
+          }}
+          title={isCollapsed ? 'Pinned Items' : undefined}
+        >
+          <span className="nav-item-icon">📌</span>
+          <span className="nav-item-label">Pinned Items</span>
+        </div>
+
         {folders.map(f => (
           <div 
             key={f._id} 
-            className="nav-item" 
+            className="nav-item folder-item" 
             style={{ 
               cursor: 'pointer',
               background: dragOverFolderId === f._id ? 'var(--accent-primary-alpha-20)' : activeFolderId === f._id ? 'var(--accent-primary-alpha-12)' : 'transparent',
@@ -316,10 +325,11 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
             <span className="nav-item-label" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{f.name}</span>
             <button
               onClick={(e) => { e.stopPropagation(); setFolderToDelete(f); }}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', opacity: 0.5, fontSize: 12 }}
-              className="nav-count"
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 14, marginLeft: 'auto' }}
+              className={`folder-delete-btn ${activeFolderId === f._id ? 'visible' : ''}`}
+              title="Delete folder"
             >
-              ✕
+              🗑️
             </button>
           </div>
         ))}</div>

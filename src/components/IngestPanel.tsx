@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 interface IngestPanelProps {
   onClose: () => void
@@ -21,6 +21,19 @@ export default function IngestPanel({ onClose, onSuccess, initialContent = '', i
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setTab(initialTab)
+  }, [initialTab])
+
+  useEffect(() => {
+    // Force focus when tab changes
+    setTimeout(() => {
+      if (tab === 'text') document.getElementById('ingest-text-input')?.focus()
+      else if (tab === 'link') document.getElementById('ingest-link-input')?.focus()
+      else if (tab === 'password') document.getElementById('ingest-password-name')?.focus()
+    }, 10)
+  }, [tab])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -66,14 +79,8 @@ export default function IngestPanel({ onClose, onSuccess, initialContent = '', i
       }
     }
 
-    if (e.key === 'Enter' && !e.shiftKey) {
-      if (tab === 'text') {
-        // Multi-line allowed, use Cmd+Enter to submit
-        if (e.metaKey || e.ctrlKey) {
-          e.preventDefault()
-          handleSubmit()
-        }
-      } else {
+    if (e.key === 'Enter') {
+      if (!e.shiftKey) {
         e.preventDefault()
         handleSubmit()
       }
@@ -136,7 +143,7 @@ export default function IngestPanel({ onClose, onSuccess, initialContent = '', i
     <div className="ingest-panel">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 16 }}>
-          ✨ Quick Capture {folderName && folderName !== 'Main Vault' ? `to ${folderName}` : ''}
+          ✨ Quick Capture to {folderName || 'Main Vault'}
         </h3>
         <button className="btn btn-icon" onClick={onClose} aria-label="Close panel">✕</button>
       </div>

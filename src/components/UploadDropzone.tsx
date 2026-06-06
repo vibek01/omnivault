@@ -238,6 +238,7 @@ export default function UploadDropzone({ onClose, onSuccess, initialFiles = [], 
                     style={{ flex: 1, minWidth: 0, margin: 0, padding: '4px 8px', fontSize: 13 }}
                     value={customNames[f.name + f.size] !== undefined ? customNames[f.name + f.size] : f.name}
                     onChange={(e) => setCustomNames(prev => ({ ...prev, [f.name + f.size]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUpload(); } }}
                   />
                   <span className="file-size" style={{ flexShrink: 0 }}>{formatBytes(f.size)}</span>
                   <button
@@ -259,6 +260,7 @@ export default function UploadDropzone({ onClose, onSuccess, initialFiles = [], 
                 placeholder="e.g. whatsapp, family, receipts"
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleUpload(); } }}
               />
             </div>
 

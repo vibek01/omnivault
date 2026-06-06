@@ -31,7 +31,7 @@ export default function DashboardClient() {
   const [items, setItems] = useState<CastItem[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [activeFilter, setActiveFilter] = useState<string>('text')
-  const [activeFolderId, setActiveFolderId] = useState<string>('all')
+  const [activeFolderId, setActiveFolderId] = useState<string>('pinned')
   const [folders, setFolders] = useState<any[]>([])
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [sortFilter, setSortFilter] = useState<string>('date_desc')
@@ -118,22 +118,48 @@ export default function DashboardClient() {
         document.getElementById('global-search')?.focus()
       }
 
+      // Cmd-based shortcuts work even if an input is focused
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyN') {
+        e.preventDefault()
+        setShowUpload(true)
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyU') {
+        e.preventDefault()
+        setPastedTab('text')
+        setShowIngest(true)
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyP') {
+        e.preventDefault()
+        setPastedTab('password')
+        setShowIngest(true)
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyL') {
+        e.preventDefault()
+        setPastedTab('link')
+        setShowIngest(true)
+      } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyS') {
+        e.preventDefault()
+        window.dispatchEvent(new Event('toggle-sidebar'))
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.code === 'KeyU') {
+        e.preventDefault()
+        document.getElementById('native-upload-input')?.click()
+      }
+
       if (!isInput) {
-        // Toggle Sidebar (Ctrl+Space)
-        if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === 'Space') {
+        // Theme Toggles (Ctrl+T and Ctrl+Shift+T)
+        if (e.ctrlKey && !e.metaKey && e.code === 'KeyT') {
           e.preventDefault()
-          window.dispatchEvent(new Event('toggle-sidebar'))
-        }
-        // Media Upload (Ctrl+Shift+N or Cmd+Shift+N)
-        else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyN') {
-          e.preventDefault()
-          setShowUpload(true)
-        }
-        // Text Capture (Shift+N)
-        else if (!e.metaKey && !e.ctrlKey && !e.altKey && e.shiftKey && e.code === 'KeyN') {
-          e.preventDefault()
-          setPastedTab('text')
-          setShowIngest(true)
+          if (e.shiftKey) {
+            // Cycle Themes
+            const themes = ['dark', 'light', 'dracula']
+            const current = document.documentElement.getAttribute('data-theme') || 'dark'
+            const next = themes[(themes.indexOf(current) + 1) % themes.length]
+            document.documentElement.setAttribute('data-theme', next)
+            localStorage.setItem('theme', next)
+          } else {
+            // Toggle Light/Dark
+            const current = document.documentElement.getAttribute('data-theme') || 'dark'
+            const next = current === 'light' ? 'dark' : 'light'
+            document.documentElement.setAttribute('data-theme', next)
+            localStorage.setItem('theme', next)
+          }
         }
         // Filter Tags (Ctrl+1 to 6 or Option+1 to 6)
         else if ((e.ctrlKey || e.altKey) && !e.shiftKey && !e.metaKey) {
@@ -218,8 +244,20 @@ export default function DashboardClient() {
         fetchItems(1)
         fetchCounts()
       }
+      
+      const handleToast = (e: any) => {
+        if (e.detail && e.detail.message) {
+          addToast(e.detail.message, e.detail.type || 'info')
+        }
+      }
+
       window.addEventListener('vault-refresh', handleRefresh)
-      return () => window.removeEventListener('vault-refresh', handleRefresh)
+      window.addEventListener('vault-toast', handleToast)
+      
+      return () => {
+        window.removeEventListener('vault-refresh', handleRefresh)
+        window.removeEventListener('vault-toast', handleToast)
+      }
     } else if (status === 'unauthenticated') {
       router.replace('/login')
     }
@@ -345,6 +383,11 @@ export default function DashboardClient() {
                 placeholder="Search your vault…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.currentTarget.blur()
+                  }
+                }}
                 aria-label="Search vault items"
               />
             </div>
@@ -440,8 +483,8 @@ export default function DashboardClient() {
                 onSuccess={handleSuccess}
                 initialContent={pastedText}
                 initialTab={pastedTab}
-                folderId={activeFolderId !== 'all' ? activeFolderId : undefined}
-                folderName={activeFolderId !== 'all' ? folders.find(f => f._id === activeFolderId)?.name : 'Main Vault'}
+                folderId={activeFolderId !== 'all' && activeFolderId !== 'pinned' ? activeFolderId : undefined}
+                folderName={activeFolderId === 'pinned' ? 'Main Vault' : activeFolderId !== 'all' ? folders.find(f => f._id === activeFolderId)?.name : 'Main Vault'}
               />
             )}
 
@@ -533,7 +576,7 @@ export default function DashboardClient() {
                     ? `Nothing matched "${debouncedSearch}". Try a different search.`
                     : 'Start by uploading files or capturing a note or link.'}
                 </p>
-                <button className="btn btn-primary" onClick={() => setShowUpload(true)}>
+                <button className="btn btn-primary" onClick={() => document.getElementById('native-upload-input')?.click()}>
                   ⬆️ Upload Files
                 </button>
               </div>
@@ -606,13 +649,27 @@ export default function DashboardClient() {
       </div>
 
       {/* Upload overlay */}
+      <input
+        type="file"
+        id="native-upload-input"
+        multiple
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            setPastedFiles(Array.from(e.target.files))
+            setShowUpload(true)
+            e.target.value = ''
+          }
+        }}
+      />
+
       {showUpload && (
         <UploadDropzone
           onClose={() => { setShowUpload(false); setPastedFiles([]); }}
           onSuccess={handleSuccess}
           initialFiles={pastedFiles}
-          folderId={activeFolderId !== 'all' ? activeFolderId : undefined}
-          folderName={activeFolderId !== 'all' ? folders.find(f => f._id === activeFolderId)?.name : 'Main Vault'}
+          folderId={activeFolderId !== 'all' && activeFolderId !== 'pinned' ? activeFolderId : undefined}
+          folderName={activeFolderId === 'pinned' ? 'Main Vault' : activeFolderId !== 'all' ? folders.find(f => f._id === activeFolderId)?.name : 'Main Vault'}
         />
       )}
 

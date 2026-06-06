@@ -25,20 +25,40 @@ export default function ShortcutsModal({ onClose }: ShortcutsModalProps) {
           <div>
             <h3 style={{ fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px', fontWeight: 600 }}>Global Actions</h3>
             <div className="shortcut-row">
-              <span>Toggle Sidebar</span>
-              <kbd className="shortcut-kbd">Ctrl + Space</kbd>
-            </div>
-            <div className="shortcut-row">
               <span>Search Vault</span>
               <kbd className="shortcut-kbd">/</kbd>
             </div>
             <div className="shortcut-row">
+              <span>Quick Paste Capture</span>
+              <kbd className="shortcut-kbd">Cmd + V</kbd>
+            </div>
+            <div className="shortcut-row">
               <span>Quick Note Capture</span>
-              <kbd className="shortcut-kbd">Shift + N</kbd>
+              <kbd className="shortcut-kbd">Cmd + Shift + U</kbd>
+            </div>
+            <div className="shortcut-row">
+              <span>Password Capture</span>
+              <kbd className="shortcut-kbd">Cmd + Shift + P</kbd>
+            </div>
+            <div className="shortcut-row">
+              <span>Link Capture</span>
+              <kbd className="shortcut-kbd">Cmd + Shift + L</kbd>
             </div>
             <div className="shortcut-row">
               <span>Media Upload Modal</span>
               <kbd className="shortcut-kbd">Cmd + Shift + N</kbd>
+            </div>
+            <div className="shortcut-row">
+              <span>Toggle Sidebar</span>
+              <kbd className="shortcut-kbd">Cmd + Shift + S</kbd>
+            </div>
+            <div className="shortcut-row">
+              <span>Toggle Light/Dark</span>
+              <kbd className="shortcut-kbd">Ctrl + T</kbd>
+            </div>
+            <div className="shortcut-row">
+              <span>Cycle Themes</span>
+              <kbd className="shortcut-kbd">Ctrl + Shift + T</kbd>
             </div>
             <div className="shortcut-row">
               <span>Show Shortcuts</span>

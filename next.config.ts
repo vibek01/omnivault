@@ -17,9 +17,6 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ['mongoose'],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },

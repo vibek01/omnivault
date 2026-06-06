@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './colors.css'
 import './globals.css'
+import 'github-markdown-css/github-markdown.css'
 
 export const metadata: Metadata = {
   title: 'OmniVault — Personal Media & Data Vault',

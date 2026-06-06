@@ -15,6 +15,7 @@
     "adm-zip": "^0.5.17",
     "cloudinary": "^2.10.0",
     "fuse.js": "^7.4.2",
+    "github-markdown-css": "^5.9.0",
     "mongoose": "^9.6.3",
     "next": "16.2.7",
     "next-auth": "^5.0.0-beta.31",
@@ -22,6 +23,7 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
+    "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {

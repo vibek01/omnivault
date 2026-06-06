@@ -44,9 +44,19 @@ function getDocIcon(format?: string): string {
   return '📄'
 }
 
+function getDownloadFilename(item: IVaultItem & { _id: string }): string {
+  let name = item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`
+  const format = item.metadata?.format
+  if (format && !name.toLowerCase().endsWith(`.${format.toLowerCase()}`)) {
+    name += `.${format}`
+  }
+  return name
+}
+
 import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { togglePinAction } from '@/actions/pinItem'
 
 type CastItem = IVaultItem & { _id: string }
@@ -167,7 +177,7 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
         <div className="card-text-content markdown-body" style={{ paddingBottom: hasCreds ? 8 : 16 }}>
           <div className="card-text-content-inner">
             <ReactMarkdown 
-              remarkPlugins={[remarkGfm]}
+              remarkPlugins={[remarkGfm, remarkBreaks]}
               components={{
                 a: ({node, ...props}) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />
@@ -244,7 +254,7 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
             </div>
             {item.cloudinaryUrl && (
               <a
-                href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
+                href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}`}
                 target="_self"
                 rel="noopener noreferrer"
                 className="btn btn-ghost btn-sm"
@@ -324,8 +334,12 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
             style={{ padding: '4px 8px', fontSize: 13, opacity: item.isPinned ? 1 : 0.4 }}
             onClick={async (e) => {
               e.stopPropagation()
-              await togglePinAction(item._id, !item.isPinned)
-              window.dispatchEvent(new Event('vault-refresh'))
+              try {
+                await togglePinAction(item._id, !item.isPinned)
+                window.dispatchEvent(new Event('vault-refresh'))
+              } catch (err: any) {
+                window.dispatchEvent(new CustomEvent('vault-toast', { detail: { message: err.message, type: 'error' } }))
+              }
             }}
             aria-label={item.isPinned ? "Unpin item" : "Pin item"}
             title={item.isPinned ? "Unpin item" : "Pin item"}
@@ -334,7 +348,7 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
           </button>
           {item.cloudinaryUrl ? (
             <a
-              href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
+              href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}`}
               target={item.type === 'document' ? "_self" : "_blank"}
               rel="noopener noreferrer"
               download

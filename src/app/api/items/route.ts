@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
   if (folderId) {
     if (folderId === 'root') {
       query.folderId = null
+    } else if (folderId === 'pinned') {
+      query.isPinned = true
     } else if (folderId !== 'all') {
       query.folderId = folderId
     }

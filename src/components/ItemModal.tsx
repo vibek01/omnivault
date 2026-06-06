@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import type { IVaultItem } from '@/models/VaultItem'
 import { uploadFilesAction } from '@/actions/upload'
 
@@ -15,6 +16,53 @@ interface ItemModalProps {
   onPrev?: () => void
   hasNext?: boolean
   hasPrev?: boolean
+}
+
+function formatBytes(bytes?: number): string {
+  if (!bytes) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1).replace('.0', '')} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function getDownloadFilename(item: IVaultItem & { _id: string }): string {
+  let name = item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`
+  const format = item.metadata?.format
+  if (format && !name.toLowerCase().endsWith(`.${format.toLowerCase()}`)) {
+    name += `.${format}`
+  }
+  return name
+}
+
+const CodeBlock = ({ inline, className, children, ...props }: any) => {
+  const match = /language-(\w+)/.exec(className || '')
+  const [copiedCode, React_useState] = React.useState(false)
+  
+  if (!inline && match) {
+    const codeContent = String(children).replace(/\n$/, '')
+    return (
+      <div style={{ position: 'relative' }}>
+        <button
+          className="btn-icon"
+          style={{ position: 'absolute', top: 8, right: 8, background: 'var(--bg-black-alpha-50)', backdropFilter: 'blur(4px)', padding: '4px 8px', fontSize: 12, borderRadius: 6, zIndex: 10, border: '1px solid var(--border-overlay)', cursor: 'pointer', color: 'var(--text-primary)' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(codeContent);
+            React_useState(true);
+            setTimeout(() => React_useState(false), 2000);
+          }}
+          aria-label="Copy code"
+          title="Copy code"
+        >
+          {copiedCode ? '✅' : '📋 Copy'}
+        </button>
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </div>
+    )
+  }
+  return <code className={className} {...props}>{children}</code>
 }
 
 export default function ItemModal({ item, onClose, onUpdate, folders = [], onNext, onPrev, hasNext, hasPrev }: ItemModalProps) {
@@ -164,7 +212,10 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           gap: '16px'
         }} className="markdown-body">
           <div>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{ code: CodeBlock }}
+            >
               {item.content}
             </ReactMarkdown>
           </div>
@@ -227,7 +278,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
             {item.metadata?.originalFilename}
           </p>
           <a
-            href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
+            href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}`}
             target="_self"
             rel="noopener noreferrer"
             download
@@ -305,7 +356,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
             </select>
             {item.cloudinaryUrl ? (
               <a
-                href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
+                href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(getDownloadFilename(item))}`}
                 target={item.type === 'document' ? "_self" : "_blank"}
                 rel="noopener noreferrer"
                 download

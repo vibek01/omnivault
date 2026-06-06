@@ -10,6 +10,21 @@
 
 html { scroll-behavior: smooth; }
 
+.markdown-body {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  font-family: inherit !important;
+  color-scheme: dark;
+}
+.markdown-body pre {
+  background-color: #1e1e1e !important;
+  border: 1px solid var(--border) !important;
+  position: relative !important;
+}
+.markdown-body code {
+  color: var(--accent-primary) !important;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--bg-base);
@@ -585,7 +600,20 @@ body {
 .vault-card:hover .play-icon {
   background: rgba(139, 92, 246, 0.8);
   border-color: var(--accent-primary);
-  transform: scale(1.05);
+  transform: scale(1.1);
+}
+
+/* ===== FOLDER DELETE BUTTON ===== */
+.folder-delete-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.folder-item:hover .folder-delete-btn,
+.folder-delete-btn.visible {
+  opacity: 0.5;
+}
+.folder-delete-btn:hover {
+  opacity: 1 !important;
 }
 
 /* ===== LINK CARD ===== */
