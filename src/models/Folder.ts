@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose'
 
 export interface IFolder extends Document {
   name: string
+  isLocked: boolean
   createdAt: Date
   updatedAt: Date
 }
@@ -12,6 +13,10 @@ const FolderSchema = new Schema<IFolder>(
       type: String,
       required: true,
       trim: true,
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
     },
   },
   {

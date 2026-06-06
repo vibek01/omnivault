@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   try {
-    const { name } = await request.json()
+    const { name, isLocked } = await request.json()
     if (!name || name.trim() === '') {
       return new Response('Folder name is required', { status: 400 })
     }
 
     await connectDB()
 
-    const folder = await Folder.create({ name: name.trim() })
+    const folder = await Folder.create({ name: name.trim(), isLocked: !!isLocked })
 
     return Response.json(folder)
   } catch (err) {
