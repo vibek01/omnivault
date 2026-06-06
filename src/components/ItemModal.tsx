@@ -154,8 +154,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           fontFamily: 'Inter, sans-serif',
           fontSize: 15,
           lineHeight: 1.7,
-          color: 'var(--text-secondary)',
-          background: 'rgba(255,255,255,0.03)',
+          background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: 10,
           padding: '24px',
@@ -172,16 +171,18 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           {hasCreds && (
             <div 
               style={{ 
-                display: 'flex', alignItems: 'center', gap: '12px', 
-                background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.3)',
-                padding: '12px 16px', borderRadius: '12px', marginTop: '8px'
+                display: 'flex', alignItems: 'center', gap: '16px', 
+                background: 'var(--accent-primary-alpha-10)', border: '1px solid var(--accent-primary-alpha-40)',
+                padding: '16px 20px', borderRadius: '12px', marginTop: '8px'
               }}
             >
               <span style={{ fontSize: '13px', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>🔑 Password</span>
               {item.metadata.credentials?.username && (
-                <span style={{ fontSize: '14px', fontFamily: 'monospace', color: '#fff' }}>
-                  {item.metadata.credentials.username}
-                </span>
+                <div>
+                  <span style={{ fontSize: '14px', fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                    {item.metadata.credentials.username}
+                  </span>
+                </div>
               )}
               <button 
                 onClick={(e) => { 
@@ -190,8 +191,9 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }} 
-                className="btn btn-primary" 
-                style={{ marginLeft: 'auto', fontSize: '13px', padding: '6px 16px', borderRadius: '100px', background: 'rgba(139, 92, 246, 0.8)' }}
+                className="btn-primary" 
+                style={{ marginLeft: 'auto', fontSize: '13px', padding: '6px 16px', borderRadius: '100px', border: 'none' }}
+                title="Copy password"
               >
                 {copied ? '✅ Copied!' : '📋 Copy Password'}
               </button>
@@ -225,7 +227,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
             {item.metadata?.originalFilename}
           </p>
           <a
-            href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1`}
+            href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
             target="_self"
             rel="noopener noreferrer"
             download
@@ -292,7 +294,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <select
               className="ingest-input"
-              style={{ width: 'auto', padding: '4px 8px', fontSize: 12, height: 28, margin: 0, backgroundColor: '#1a1b23' }}
+              style={{ width: 'auto', padding: '4px 8px', fontSize: 12, height: 28, margin: 0, backgroundColor: 'var(--input-bg)' }}
               value={item.folderId ? String(item.folderId) : 'root'}
               onChange={(e) => handleMoveToFolder(e.target.value)}
             >
@@ -303,7 +305,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
             </select>
             {item.cloudinaryUrl ? (
               <a
-                href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1` : item.cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/')}
+                href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
                 target={item.type === 'document' ? "_self" : "_blank"}
                 rel="noopener noreferrer"
                 download

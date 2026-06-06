@@ -7,6 +7,9 @@ interface VaultItemCardProps {
   item: IVaultItem & { _id: string }
   onOpen: (item: IVaultItem & { _id: string }) => void
   onDelete: (id: string) => void
+  isSelected?: boolean
+  isSelectionMode?: boolean
+  onToggleSelect?: (id: string) => void
 }
 
 function formatDate(date: Date | string): string {
@@ -25,7 +28,8 @@ function formatDate(date: Date | string): string {
 
 function formatBytes(bytes?: number): string {
   if (!bytes) return ''
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1).replace('.0', '')} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
@@ -47,13 +51,19 @@ import { togglePinAction } from '@/actions/pinItem'
 
 type CastItem = IVaultItem & { _id: string }
 
-export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardProps) {
+export default function VaultItemCard({ item, onOpen, onDelete, isSelected = false, isSelectionMode = false, onToggleSelect }: VaultItemCardProps) {
   const [copied, setCopied] = useState(false)
+
+  // Calculate generic size for any item
+  const getFileSize = () => {
+    if (item.metadata?.fileSize) return item.metadata.fileSize;
+    if (item.content) return new Blob([item.content]).size;
+    return 0;
+  }
+  const displaySize = getFileSize();
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (confirm('Delete this item? The file will also be removed from Cloudinary.')) {
-      onDelete(item._id)
-    }
+    onDelete(item._id)
   }
 
   const isPdf = item.type === 'document' && (
@@ -86,7 +96,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🖼️</div>
+              <div style={{ position: 'absolute', inset: 0, background: 'var(--accent-primary-alpha-10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🖼️</div>
             )}
             <div className="card-image-overlay" />
           </div>
@@ -112,7 +122,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(236,72,153,0.1)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'var(--accent-pink-alpha-10)' }} />
           )}
           <div className="play-icon">▶</div>
         </div>
@@ -156,7 +166,14 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
       return (
         <div className="card-text-content markdown-body" style={{ paddingBottom: hasCreds ? 8 : 16 }}>
           <div className="card-text-content-inner">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({node, ...props}) => (
+                  <a {...props} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} />
+                )
+              }}
+            >
               {item.content}
             </ReactMarkdown>
           </div>
@@ -165,7 +182,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
               <div 
                 style={{ 
                   display: 'flex', alignItems: 'center', gap: '8px', 
-                  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'var(--bg-overlay-1)', border: '1px solid var(--border-overlay)',
                   padding: '6px 10px', borderRadius: '100px'
                 }}
               >
@@ -183,7 +200,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
                     setTimeout(() => setCopied(false), 2000)
                   }} 
                   className="btn-icon" 
-                  style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 8px', background: 'rgba(139, 92, 246, 0.2)', color: 'var(--accent-primary)', borderRadius: '100px' }}
+                  style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 8px', background: 'var(--accent-primary-alpha-20)', color: 'var(--accent-primary)', borderRadius: '100px' }}
                   title="Copy password"
                 >
                   {copied ? '✅ Copied' : '📋 Copy'}
@@ -202,7 +219,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
             <div style={{ flex: 1, overflow: 'hidden', position: 'relative', width: '100%', pointerEvents: 'none' }}>
               <iframe
                 src={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}`}
-                style={{ width: '100%', height: '100%', border: 'none', background: '#fff' }}
+                style={{ width: '100%', height: '100%', border: 'none', background: 'var(--iframe-bg)' }}
                 title={item.metadata?.originalFilename}
                 tabIndex={-1}
               />
@@ -227,7 +244,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
             </div>
             {item.cloudinaryUrl && (
               <a
-                href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1`}
+                href={`/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
                 target="_self"
                 rel="noopener noreferrer"
                 className="btn btn-ghost btn-sm"
@@ -246,7 +263,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
   return (
     <div
       className={`vault-card ${cardSizeClass}`}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', border: isSelected ? '2px solid var(--accent-primary)' : undefined }}
       role="article"
       tabIndex={0}
       draggable={true}
@@ -272,8 +289,31 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
       onKeyDown={(e) => e.key === 'Enter' && onOpen(item)}
       aria-label={`${item.type} item: ${item.metadata?.title ?? item.metadata?.originalFilename ?? item.content?.slice(0, 40)}`}
     >
+      {/* Checkbox for selection */}
+      <div 
+        className="checkbox-wrap"
+        style={{
+          position: 'absolute',
+          top: 14,
+          left: 14,
+          zIndex: 20,
+          opacity: (isSelectionMode || isSelected) ? 1 : undefined,
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (onToggleSelect) onToggleSelect(item._id)
+        }}
+      >
+        <input 
+          type="checkbox" 
+          checked={isSelected}
+          onChange={() => {}}
+          style={{ width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--accent-primary)' }}
+        />
+      </div>
+
       {/* Card header */}
-      <div className="card-header">
+      <div className="card-header" style={{ paddingLeft: (isSelectionMode || isSelected) ? 40 : 16, transition: 'padding 0.2s' }}>
         <div className="card-meta">
           <span className={typeBadgeClass}>{isPassword ? 'password' : item.type}</span>
           <span className="card-time">{formatDate(item.createdAt)}</span>
@@ -294,7 +334,7 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
           </button>
           {item.cloudinaryUrl ? (
             <a
-              href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1` : item.cloudinaryUrl.replace('/upload/', '/upload/fl_attachment/')}
+              href={item.type === 'document' ? `/api/proxy-pdf?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}` : `/api/proxy?url=${encodeURIComponent(item.cloudinaryUrl)}&download=1&filename=${encodeURIComponent(item.metadata?.originalFilename || item.metadata?.title || `file-${item._id}`)}`}
               target={item.type === 'document' ? "_self" : "_blank"}
               rel="noopener noreferrer"
               download
@@ -339,12 +379,37 @@ export default function VaultItemCard({ item, onOpen, onDelete }: VaultItemCardP
       {/* Type-specific content */}
       {renderContent()}
 
-      {/* Tags */}
-      {item.tags && item.tags.length > 0 && (
-        <div className="card-tags">
-          {item.tags.map((t) => (
-            <span key={t} className="tag">#{t}</span>
-          ))}
+      {/* Footer: Tags and File Size */}
+      {(item.tags?.length || displaySize > 0) && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          padding: '12px 16px', 
+          borderTop: '1px solid var(--border)',
+          marginTop: 'auto',
+          minHeight: 44
+        }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, flex: 1 }}>
+            {item.tags?.filter(t => !(isPassword && t.toLowerCase() === 'password')).map((t) => (
+              <span key={t} className="tag" style={{ margin: 0 }}>#{t}</span>
+            ))}
+          </div>
+
+          {displaySize > 0 && (
+            <div style={{ 
+              padding: '4px 10px', 
+              background: 'var(--bg-overlay-2)', 
+              borderRadius: 12, 
+              fontSize: 11, 
+              color: 'var(--text-muted)',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              marginLeft: 12
+            }}>
+              {formatBytes(displaySize)}
+            </div>
+          )}
         </div>
       )}
     </div>

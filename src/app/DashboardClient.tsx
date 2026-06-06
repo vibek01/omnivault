@@ -8,6 +8,7 @@ import VaultItemCard from '@/components/VaultItemCard'
 import UploadDropzone from '@/components/UploadDropzone'
 import IngestPanel from '@/components/IngestPanel'
 import ItemModal from '@/components/ItemModal'
+import ShortcutsModal from '@/components/ShortcutsModal'
 import ToastContainer, { Toast, ToastType } from '@/components/ToastContainer'
 import type { IVaultItem } from '@/models/VaultItem'
 
@@ -21,7 +22,7 @@ interface Pagination {
   hasNext: boolean
 }
 
-const TABS = ['all', 'image', 'video', 'link', 'text', 'document'] as const
+const TABS = ['text', 'image', 'video', 'link', 'document', 'all'] as const
 
 export default function DashboardClient() {
   const { data: session, status } = useSession()
@@ -29,20 +30,25 @@ export default function DashboardClient() {
 
   const [items, setItems] = useState<CastItem[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
-  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeFilter, setActiveFilter] = useState<string>('text')
   const [activeFolderId, setActiveFolderId] = useState<string>('all')
   const [folders, setFolders] = useState<any[]>([])
   const [dateFilter, setDateFilter] = useState<string>('all')
+  const [sortFilter, setSortFilter] = useState<string>('date_desc')
   const [customDateStart, setCustomDateStart] = useState('')
   const [customDateEnd, setCustomDateEnd] = useState('')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
   const [showUpload, setShowUpload] = useState(false)
   const [showIngest, setShowIngest] = useState(false)
   const [selectedItem, setSelectedItem] = useState<CastItem | null>(null)
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   const [pastedFiles, setPastedFiles] = useState<File[]>([])
   const [pastedText, setPastedText] = useState('')
@@ -80,6 +86,7 @@ export default function DashboardClient() {
 
       const files = Array.from(e.clipboardData?.files || [])
       if (files.length > 0) {
+        e.preventDefault()
         setPastedFiles(files)
         setShowUpload(true)
         setShowIngest(false)
@@ -88,6 +95,7 @@ export default function DashboardClient() {
 
       const text = e.clipboardData?.getData('text')
       if (text) {
+        e.preventDefault()
         setPastedText(text)
         setPastedTab(text.startsWith('http') ? 'link' : 'text')
         setShowIngest(true)
@@ -96,8 +104,57 @@ export default function DashboardClient() {
     }
 
     window.addEventListener('paste', handlePaste)
-    return () => window.removeEventListener('paste', handlePaste)
-  }, [])
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA' || (document.activeElement as HTMLElement)?.isContentEditable
+
+      if (e.key === '?' && !isInput) {
+        e.preventDefault()
+        setShowShortcuts(true)
+      }
+
+      if (e.key === '/' && !isInput) {
+        e.preventDefault()
+        document.getElementById('global-search')?.focus()
+      }
+
+      if (!isInput) {
+        // Toggle Sidebar (Ctrl+Space)
+        if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && e.code === 'Space') {
+          e.preventDefault()
+          window.dispatchEvent(new Event('toggle-sidebar'))
+        }
+        // Media Upload (Ctrl+Shift+N or Cmd+Shift+N)
+        else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.code === 'KeyN') {
+          e.preventDefault()
+          setShowUpload(true)
+        }
+        // Text Capture (Shift+N)
+        else if (!e.metaKey && !e.ctrlKey && !e.altKey && e.shiftKey && e.code === 'KeyN') {
+          e.preventDefault()
+          setPastedTab('text')
+          setShowIngest(true)
+        }
+        // Filter Tags (Ctrl+1 to 6 or Option+1 to 6)
+        else if ((e.ctrlKey || e.altKey) && !e.shiftKey && !e.metaKey) {
+          const isNum = (n: number) => e.key === String(n) || e.code === `Digit${n}` || e.code === `Numpad${n}`
+          
+          if (isNum(1)) { e.preventDefault(); handleFilterChange('text'); }
+          else if (isNum(2)) { e.preventDefault(); handleFilterChange('image'); }
+          else if (isNum(3)) { e.preventDefault(); handleFilterChange('video'); }
+          else if (isNum(4)) { e.preventDefault(); handleFilterChange('link'); }
+          else if (isNum(5)) { e.preventDefault(); handleFilterChange('document'); }
+          else if (isNum(6)) { e.preventDefault(); handleFilterChange('all'); }
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.removeEventListener('paste', handlePaste)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [activeFilter])
 
   const fetchItems = useCallback(async (page = 1, append = false) => {
     if (page === 1) {
@@ -107,6 +164,7 @@ export default function DashboardClient() {
     const params = new URLSearchParams({
       page: String(page),
       limit: '21',
+      sort: sortFilter,
       ...(activeFilter !== 'all' ? { type: activeFilter } : {}),
       ...(activeFolderId === 'all' ? { folderId: 'root' } : { folderId: activeFolderId }),
       ...(debouncedSearch ? { search: debouncedSearch } : {}),
@@ -124,7 +182,7 @@ export default function DashboardClient() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [activeFilter, debouncedSearch, dateFilter, customDateStart, customDateEnd, activeFolderId])
+  }, [activeFilter, debouncedSearch, dateFilter, sortFilter, customDateStart, customDateEnd, activeFolderId])
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -139,7 +197,7 @@ export default function DashboardClient() {
       const c: Record<string, number> = {}
       results.forEach(([t, n]) => { c[t as string] = n as number })
       setCounts(c as typeof counts)
-    } catch {}
+    } catch { }
   }, [activeFolderId])
 
   const fetchFolders = useCallback(async () => {
@@ -147,7 +205,7 @@ export default function DashboardClient() {
       const res = await fetch('/api/folders')
       const data = await res.json()
       setFolders(data)
-    } catch {}
+    } catch { }
   }, [])
 
   useEffect(() => {
@@ -155,7 +213,7 @@ export default function DashboardClient() {
       fetchItems(1)
       fetchCounts()
       fetchFolders()
-      
+
       const handleRefresh = () => {
         fetchItems(1)
         fetchCounts()
@@ -168,19 +226,58 @@ export default function DashboardClient() {
   }, [status, activeFilter, debouncedSearch, fetchItems, fetchCounts, router])
 
   const handleFilterChange = (f: string) => {
-    setActiveFilter(f)
-    setItems([])
+    if (f !== activeFilter) {
+      setActiveFilter(f)
+      setItems([])
+      setSelectedItems(new Set())
+    }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteRequest = (id: string) => {
+    setItemToDelete(id)
+  }
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return
     try {
-      const res = await fetch(`/api/items/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/items/${itemToDelete}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Delete failed')
-      setItems((prev) => prev.filter((i) => i._id !== id))
+      setItems((prev) => prev.filter((i) => i._id !== itemToDelete))
+      setSelectedItems(prev => { const n = new Set(prev); n.delete(itemToDelete); return n; })
       fetchCounts()
       addToast('Item deleted safely', 'success')
     } catch {
       addToast('Failed to delete item', 'error')
+    } finally {
+      setItemToDelete(null)
+    }
+  }
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkDelete = () => {
+    setShowBulkDeleteConfirm(true)
+  }
+
+  const confirmBulkDelete = async () => {
+    try {
+      const promises = Array.from(selectedItems).map(id => fetch(`/api/items/${id}`, { method: 'DELETE' }))
+      await Promise.all(promises)
+      setItems(prev => prev.filter(i => !selectedItems.has(i._id)))
+      setSelectedItems(new Set())
+      fetchCounts()
+      addToast(`Deleted items`, 'success')
+    } catch {
+      addToast('Failed to delete some items', 'error')
+    } finally {
+      setShowBulkDeleteConfirm(false)
     }
   }
 
@@ -253,12 +350,27 @@ export default function DashboardClient() {
             </div>
             <div className="topbar-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <select
-                className="ingest-input"
-                style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: '#1a1b23', cursor: 'pointer', outline: 'none' }}
+                className="custom-select"
+                value={sortFilter}
+                onChange={(e) => {
+                  setSortFilter(e.target.value);
+                  setItems([]);
+                }}
+              >
+                <option value="date_desc">Newest First</option>
+                <option value="date_asc">Oldest First</option>
+                <option value="name_asc">Name (A-Z)</option>
+                <option value="name_desc">Name (Z-A)</option>
+                <option value="size_desc">Size (Largest)</option>
+                <option value="size_asc">Size (Smallest)</option>
+              </select>
+
+              <select
+                className="custom-select"
                 value={dateFilter}
-                onChange={(e) => { 
-                  setDateFilter(e.target.value); 
-                  if (e.target.value !== 'custom' && e.target.value !== 'range') setItems([]); 
+                onChange={(e) => {
+                  setDateFilter(e.target.value);
+                  if (e.target.value !== 'custom' && e.target.value !== 'range') setItems([]);
                 }}
               >
                 <option value="all">All Time</option>
@@ -274,7 +386,7 @@ export default function DashboardClient() {
                 <input
                   type="date"
                   className="ingest-input"
-                  style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: '#1a1b23' }}
+                  style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: 'var(--input-bg)' }}
                   value={customDateStart}
                   onChange={(e) => { setCustomDateStart(e.target.value); setItems([]); }}
                 />
@@ -285,15 +397,15 @@ export default function DashboardClient() {
                   <input
                     type="date"
                     className="ingest-input"
-                    style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: '#1a1b23' }}
+                    style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: 'var(--input-bg)' }}
                     value={customDateStart}
                     onChange={(e) => { setCustomDateStart(e.target.value); if (customDateEnd) setItems([]); }}
                   />
-                  <span style={{ fontSize: 13, color: '#9ca3af' }}>to</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>to</span>
                   <input
                     type="date"
                     className="ingest-input"
-                    style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: '#1a1b23' }}
+                    style={{ width: 'auto', padding: '6px 12px', fontSize: 13, height: 36, backgroundColor: 'var(--input-bg)' }}
                     value={customDateEnd}
                     onChange={(e) => { setCustomDateEnd(e.target.value); if (customDateStart) setItems([]); }}
                   />
@@ -386,7 +498,7 @@ export default function DashboardClient() {
                   {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1) + 's'}
                   {counts[t as keyof typeof counts] !== undefined && (
                     <span style={{
-                      background: activeFilter === t ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      background: activeFilter === t ? 'var(--accent-primary-alpha-20)' : 'var(--border-overlay)',
                       padding: '2px 8px',
                       borderRadius: '12px',
                       fontSize: '11px',
@@ -433,7 +545,10 @@ export default function DashboardClient() {
                       key={item._id}
                       item={item}
                       onOpen={setSelectedItem}
-                      onDelete={handleDelete}
+                      onDelete={handleDeleteRequest}
+                      isSelected={selectedItems.has(item._id)}
+                      isSelectionMode={selectedItems.size > 0}
+                      onToggleSelect={handleToggleSelect}
                     />
                   ))}
                 </div>
@@ -452,6 +567,40 @@ export default function DashboardClient() {
                 )}
               </>
             )}
+
+            {/* Bulk actions bar */}
+            {selectedItems.size > 0 && (
+              <div style={{
+                position: 'fixed',
+                bottom: '32px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--accent-primary)',
+                boxShadow: 'var(--shadow-glow)',
+                padding: '12px 24px',
+                borderRadius: '100px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                zIndex: 50,
+                animation: 'slideDown 0.2s reverse'
+              }}>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>{selectedItems.size} selected</span>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setSelectedItems(new Set())}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={handleBulkDelete}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -467,9 +616,11 @@ export default function DashboardClient() {
         />
       )}
 
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
       {selectedItem && (
-        <ItemModal 
-          item={selectedItem} 
+        <ItemModal
+          item={selectedItem}
           onClose={() => setSelectedItem(null)}
           folders={folders}
           onUpdate={(updatedItem) => {
@@ -485,6 +636,40 @@ export default function DashboardClient() {
           hasNext={items.findIndex(i => i._id === selectedItem._id) < items.length - 1}
           hasPrev={items.findIndex(i => i._id === selectedItem._id) > 0}
         />
+      )}
+
+      {/* Item Delete Modal */}
+      {itemToDelete && (
+        <div className="modal-overlay" onClick={() => setItemToDelete(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🗑️</div>
+            <h2 style={{ fontSize: 20, marginBottom: 8, color: 'var(--text-primary)' }}>Delete Item?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+              Are you sure you want to delete this item? The file will also be removed from Cloudinary.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn" style={{ flex: 1, background: 'var(--bg-card)', color: 'var(--text-primary)' }} onClick={() => setItemToDelete(null)}>Cancel</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmDelete}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Modal */}
+      {showBulkDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => setShowBulkDeleteConfirm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>🗑️</div>
+            <h2 style={{ fontSize: 20, marginBottom: 8, color: 'var(--text-primary)' }}>Delete {selectedItems.size} items?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, marginBottom: 24 }}>
+              Are you sure you want to delete {selectedItems.size} items? This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button className="btn" style={{ flex: 1, background: 'var(--bg-card)', color: 'var(--text-primary)' }} onClick={() => setShowBulkDeleteConfirm(false)}>Cancel</button>
+              <button className="btn btn-danger" style={{ flex: 1 }} onClick={confirmBulkDelete}>Delete All</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toasts */}
