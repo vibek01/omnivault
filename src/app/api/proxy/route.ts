@@ -53,7 +53,8 @@ export async function GET(request: NextRequest) {
     }
     
     if (request.nextUrl.searchParams.get('download') === '1') {
-      const filename = url.split('/').pop() || 'download'
+      const customFilename = request.nextUrl.searchParams.get('filename')
+      const filename = customFilename || url.split('/').pop() || 'download'
       headers['Content-Disposition'] = `attachment; filename="${filename}"`
     }
 
