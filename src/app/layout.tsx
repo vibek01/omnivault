@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import './colors.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -14,7 +15,23 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const t = localStorage.theme;
+                if (t && t !== 'dark') {
+                  document.documentElement.setAttribute('data-theme', t)
+                } else {
+                  document.documentElement.removeAttribute('data-theme')
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body>
         <div className="bg-mesh" aria-hidden="true" />
         <div className="bg-grid" aria-hidden="true" />
