@@ -79,29 +79,13 @@ export async function POST(request: NextRequest) {
   // type === 'text'
   let textMetadata: any = {}
   
-  // Manual extraction: First line is description, second line is exact password
-  const lines = content.split('\n').map((l: string) => l.trim()).filter(Boolean)
-  
-  if (lines.length >= 2) {
-    const isLikelyPassword = lines.length === 2 && (
-      !lines[1].includes(' ') || 
-      lines[0].toLowerCase().includes('password') || 
-      lines[0].toLowerCase().includes('pass') ||
-      lines[0].toLowerCase().includes('login')
-    )
-
-    if (isLikelyPassword) {
-      textMetadata.credentials = {
-        username: lines[0],
-        password: lines[1]
-      }
-      content = lines[0]; // Set the note text to just the description
-      
-      // Auto-tag as password
-      tags = tags || [];
-      if (!tags.includes('password')) {
-        tags.push('password');
-      }
+  let { isPassword, credentials } = body as any
+  if (isPassword && credentials) {
+    textMetadata.credentials = credentials;
+    // Auto-tag as password
+    tags = tags || [];
+    if (!tags.includes('password')) {
+      tags.push('password');
     }
   }
 
