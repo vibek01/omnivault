@@ -26,7 +26,7 @@ function getFileIcon(type: string): string {
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1).replace('.0', '')} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
@@ -234,6 +234,7 @@ export default function UploadDropzone({ onClose, onSuccess, initialFiles = [], 
                   <FilePreview file={f} />
                   <input
                     className="ingest-input"
+                    autoFocus={i === 0}
                     style={{ flex: 1, minWidth: 0, margin: 0, padding: '4px 8px', fontSize: 13 }}
                     value={customNames[f.name + f.size] !== undefined ? customNames[f.name + f.size] : f.name}
                     onChange={(e) => setCustomNames(prev => ({ ...prev, [f.name + f.size]: e.target.value }))}
