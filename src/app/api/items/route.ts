@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import Folder from '@/models/Folder'
 // Removed fuse.js in favor of MongoDB native text search
+import mongoose from 'mongoose'
 
 export async function GET(request: NextRequest) {
   const session = await auth()
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     const lockedIds = lockedFolders.map(f => f._id.toString())
     if (lockedIds.length > 0) {
       if (!folderId || folderId === 'all') {
-        query.folderId = { $nin: lockedIds }
+        query.folderId = { $nin: lockedIds.map(id => new mongoose.Types.ObjectId(id)) }
       } else if (lockedIds.includes(folderId)) {
         return new Response('Folder is locked', { status: 403 })
       }
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     } else if (folderId === 'pinned') {
       query.isPinned = true
     } else if (folderId !== 'all') {
-      query.folderId = folderId
+      query.folderId = new mongoose.Types.ObjectId(folderId)
     }
   }
 

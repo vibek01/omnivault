@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
   await connectDB()
   const userPasskeys = await Passkey.find({ email: session.user.email })
 
-  const rpID = process.env.NODE_ENV === 'production' ? (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost') : 'localhost'
+  const host = req.headers.get('host') || 'localhost:3000'
+  const rpID = host.split(':')[0]
 
   const options = await generateRegistrationOptions({
     rpName: 'OmniVault Secure',

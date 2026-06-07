@@ -17,8 +17,10 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const rpID = process.env.NODE_ENV === 'production' ? (process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : 'localhost') : 'localhost'
-  const expectedOrigin = process.env.NODE_ENV === 'production' ? (process.env.NEXT_PUBLIC_APP_URL || `https://${rpID}`) : 'http://localhost:3000'
+  const host = req.headers.get('host') || 'localhost:3000'
+  const rpID = host.split(':')[0]
+  const protocol = process.env.NODE_ENV === 'production' && rpID !== 'localhost' ? 'https' : 'http'
+  const expectedOrigin = `${protocol}://${host}`
 
   await connectDB()
   const passkey = await Passkey.findOne({ credentialID: body.id, email: session.user.email })

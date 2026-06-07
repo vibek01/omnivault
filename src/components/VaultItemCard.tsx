@@ -141,33 +141,51 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
 
     if (item.type === 'link') {
       const hasPreview = Boolean(item.metadata?.previewImage) || (item.metadata?.title && item.metadata?.title !== item.metadata?.domain)
-      return hasPreview ? (
-        <div className="card-link-preview">
-          {item.metadata?.previewImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              className="link-preview-image"
-              src={item.metadata.previewImage}
-              alt={item.metadata.title ?? ''}
-              loading="lazy"
-            />
-          )}
-          <div className="link-preview-content">
-            <div className="link-title">{item.metadata?.title}</div>
-            {item.metadata?.description && (
-              <div className="link-description">{item.metadata.description}</div>
-            )}
-            <div className="link-domain">
-              🌐 {item.metadata?.siteName ?? item.metadata?.domain}
+      return (
+        <>
+          {hasPreview ? (
+            <div className="card-link-preview">
+              {item.metadata?.previewImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  className="link-preview-image"
+                  src={item.metadata.previewImage}
+                  alt={item.metadata.title ?? ''}
+                  loading="lazy"
+                />
+              )}
+              <div className="link-preview-content">
+                <div className="link-title">{item.metadata?.title}</div>
+                {item.metadata?.description && (
+                  <div className="link-description">{item.metadata.description}</div>
+                )}
+                <div className="link-domain">
+                  🌐 {item.metadata?.siteName ?? item.metadata?.domain}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="link-url-raw">
-          <div className="link-url-raw-inner">
-            🔗 {item.content}
-          </div>
-        </div>
+          ) : (
+            <div className="link-url-raw">
+              <div className="link-url-raw-inner">
+                🔗 {item.content}
+              </div>
+            </div>
+          )}
+          {item.content && (
+            <div className="link-hover-overlay">
+              <a 
+                href={item.content} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="link-hover-btn" 
+                onClick={(e) => e.stopPropagation()} 
+                title="Visit Link"
+              >
+                ↗️ Visit Link
+              </a>
+            </div>
+          )}
+        </>
       )
     }
 
