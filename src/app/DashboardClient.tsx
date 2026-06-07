@@ -22,7 +22,7 @@ interface Pagination {
   hasNext: boolean
 }
 
-const TABS = ['text', 'image', 'video', 'link', 'document', 'all'] as const
+const TABS = ['all', 'text', 'image', 'link', 'document', 'video'] as const
 
 export default function DashboardClient() {
   const { data: session, status } = useSession()
@@ -30,8 +30,8 @@ export default function DashboardClient() {
 
   const [items, setItems] = useState<CastItem[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
-  const [activeFilter, setActiveFilter] = useState<string>('text')
-  const [activeFolderId, setActiveFolderId] = useState<string>('pinned')
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [activeFolderId, setActiveFolderId] = useState<string>('all')
   const [folders, setFolders] = useState<any[]>([])
   const [dateFilter, setDateFilter] = useState<string>('all')
   const [sortFilter, setSortFilter] = useState<string>('date_desc')
@@ -72,7 +72,7 @@ export default function DashboardClient() {
   // Debounce search
   useEffect(() => {
     if (searchRef.current) clearTimeout(searchRef.current)
-    searchRef.current = setTimeout(() => setDebouncedSearch(search), 400)
+    searchRef.current = setTimeout(() => setDebouncedSearch(search), 300)
     return () => { if (searchRef.current) clearTimeout(searchRef.current) }
   }, [search])
 
@@ -165,12 +165,12 @@ export default function DashboardClient() {
         else if ((e.ctrlKey || e.altKey) && !e.shiftKey && !e.metaKey) {
           const isNum = (n: number) => e.key === String(n) || e.code === `Digit${n}` || e.code === `Numpad${n}`
           
-          if (isNum(1)) { e.preventDefault(); handleFilterChange('text'); }
-          else if (isNum(2)) { e.preventDefault(); handleFilterChange('image'); }
-          else if (isNum(3)) { e.preventDefault(); handleFilterChange('video'); }
+          if (isNum(1)) { e.preventDefault(); handleFilterChange('all'); }
+          else if (isNum(2)) { e.preventDefault(); handleFilterChange('text'); }
+          else if (isNum(3)) { e.preventDefault(); handleFilterChange('image'); }
           else if (isNum(4)) { e.preventDefault(); handleFilterChange('link'); }
           else if (isNum(5)) { e.preventDefault(); handleFilterChange('document'); }
-          else if (isNum(6)) { e.preventDefault(); handleFilterChange('all'); }
+          else if (isNum(6)) { e.preventDefault(); handleFilterChange('video'); }
         }
       }
     }
