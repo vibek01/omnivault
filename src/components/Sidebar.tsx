@@ -22,6 +22,8 @@ interface SidebarProps {
   activeFolderId?: string
   setActiveFolderId?: (id: string) => void
   refreshFolders?: () => void
+  isMobileMenuOpen?: boolean
+  setIsMobileMenuOpen?: (val: boolean) => void
 }
 
 const NAV_ITEMS = [
@@ -38,7 +40,7 @@ import { moveItemAction } from '@/actions/moveItem'
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import PasskeyManagerModal from './PasskeyManagerModal'
 
-export default function Sidebar({ session, counts, activeFilter, onFilterChange, folders = [], activeFolderId = 'all', setActiveFolderId, refreshFolders }: SidebarProps) {
+export default function Sidebar({ session, counts, activeFilter, onFilterChange, folders = [], activeFolderId = 'all', setActiveFolderId, refreshFolders, isMobileMenuOpen, setIsMobileMenuOpen }: SidebarProps) {
   const pathname = usePathname()
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
@@ -226,7 +228,7 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
 
   return (
     <>
-      <nav className={`sidebar ${isCollapsed ? 'collapsed' : ''}`} role="navigation" aria-label="Main navigation">
+      <nav className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileMenuOpen ? 'mobile-open' : ''}`} role="navigation" aria-label="Main navigation">
       {/* Logo */}
       <div className="sidebar-logo" style={{ position: 'relative' }}>
         <div className="sidebar-logo-icon">🔐</div>
@@ -461,6 +463,9 @@ export default function Sidebar({ session, counts, activeFilter, onFilterChange,
         onClose={() => setIsPasskeyModalOpen(false)}
         onDeletePasskey={handleDeletePasskey}
       />
+      {isMobileMenuOpen && (
+        <div className="mobile-sidebar-overlay" onClick={() => setIsMobileMenuOpen && setIsMobileMenuOpen(false)} />
+      )}
     </>
   )
 }
