@@ -445,7 +445,7 @@ body {
 }
 
 @media (min-width: 1921px) { .vault-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (max-width: 900px) { .vault-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .vault-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
 
 .vault-card {
   background: var(--bg-card);
@@ -1278,42 +1278,82 @@ body {
   padding: 24px;
 }
 
+.show-on-mobile { display: none !important; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .sidebar { display: none; }
-  .topbar { padding: 12px 16px; }
+  .sidebar { 
+    transform: translateX(-100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex !important;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .mobile-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+  }
+  .show-on-mobile { display: inline-flex !important; }
+  .mobile-full-width { width: 100% !important; }
+  .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
+  .topbar-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; gap: 10px; }
+  .topbar-actions .btn, .topbar-actions .custom-select { width: 100%; justify-content: center; text-align: center; }
+  .search-bar { width: 100%; max-width: none; flex: 1 1 100%; }
   .page-content { padding: 16px; }
   .stats-strip { flex-wrap: wrap; }
   .login-card { padding: 36px 24px; }
   .ingest-panel { padding: 20px; }
+  .dropzone-card { padding: 24px; width: calc(100% - 32px); margin: 16px; }
+  .modal-content { max-width: calc(100% - 32px); padding: 24px; margin: 16px; }
+  .hide-on-mobile { display: none !important; }
+  .filter-tabs { gap: 4px; }
+  .filter-tab { padding: 6px 10px; font-size: 12px; gap: 4px; }
 }
 
 /* Custom Dropdown Styling */
 .custom-select {
   appearance: none;
   background-color: var(--bg-card);
+  color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: var(--text-primary);
-  padding: 8px 36px 8px 16px;
-  font-size: 14px;
-  outline: none;
+  padding: 8px 32px 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
   cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E");
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239ca3af%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 14px;
-  transition: all 0.2s ease;
+  background-position: right 12px top 50%;
+  background-size: 10px auto;
+  transition: all var(--transition);
 }
 
 .custom-select:hover {
-  background-color: var(--bg-card-hover);
-  border-color: var(--border-accent);
+  border-color: var(--border-hover);
 }
 
 .custom-select:focus {
+  outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px var(--accent-primary-alpha-20);
+  box-shadow: 0 0 0 2px var(--accent-primary-alpha-25);
+}
+
+@media (max-width: 768px) {
+  .item-modal-header { padding: 20px 20px 0 20px !important; }
+  .item-modal-body { padding: 20px !important; }
+}
+@media (min-width: 769px) {
+  .item-modal-header { padding: 32px 32px 0 32px !important; }
+  .item-modal-body { padding: 32px !important; }
 }
 
 /* Custom Modals */
