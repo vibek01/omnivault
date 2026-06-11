@@ -40,6 +40,7 @@ export default function DashboardClient() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
 
@@ -367,14 +368,24 @@ export default function DashboardClient() {
             onFilterChange={handleFilterChange}
             folders={folders}
             activeFolderId={activeFolderId}
-            setActiveFolderId={(id: string) => { setActiveFolderId(id); setItems([]); }}
+            setActiveFolderId={(id: string) => { setActiveFolderId(id); setItems([]); setIsMobileMenuOpen(false); }}
             refreshFolders={fetchFolders}
+            isMobileMenuOpen={isMobileMenuOpen}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
           />
         )}
 
         <main className="main-content">
           {/* Topbar */}
           <header className="topbar">
+            <button 
+              className="btn-icon show-on-mobile" 
+              style={{ padding: '8px 12px', fontSize: 20 }}
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Open mobile menu"
+            >
+              ☰
+            </button>
             <div className="search-bar">
               <span className="search-icon">🔍</span>
               <input
@@ -391,7 +402,7 @@ export default function DashboardClient() {
                 aria-label="Search vault items"
               />
             </div>
-            <div className="topbar-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="topbar-actions">
               <select
                 className="custom-select"
                 value={sortFilter}
@@ -489,7 +500,7 @@ export default function DashboardClient() {
             )}
 
             {/* Top Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
               <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ fontSize: '32px', opacity: 0.8 }}>🗄️</div>
                 <div>
