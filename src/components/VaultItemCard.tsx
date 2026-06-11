@@ -209,14 +209,16 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
             <div style={{ marginTop: 'auto', paddingTop: 8 }}>
               <div 
                 style={{ 
-                  display: 'flex', alignItems: 'center', gap: '8px', 
+                  display: 'flex', alignItems: 'center', gap: '6px', 
                   background: 'var(--bg-overlay-1)', border: '1px solid var(--border-overlay)',
-                  padding: '6px 10px', borderRadius: '100px'
+                  padding: '4px 8px', borderRadius: '100px',
+                  width: '100%',
+                  boxSizing: 'border-box'
                 }}
               >
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🔑 Pass</span>
+                <span style={{ fontSize: '12px', flexShrink: 0 }}>🔑</span>
                 {item.metadata.credentials?.username && (
-                  <span style={{ fontSize: '12px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '90px' }}>
+                  <span style={{ fontSize: '11px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                     {item.metadata.credentials.username}
                   </span>
                 )}
@@ -228,10 +230,10 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
                     setTimeout(() => setCopied(false), 2000)
                   }} 
                   className="btn-icon" 
-                  style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 8px', background: 'var(--accent-primary-alpha-20)', color: 'var(--accent-primary)', borderRadius: '100px' }}
+                  style={{ flexShrink: 0, fontSize: '11px', padding: '4px 8px', background: 'var(--accent-primary-alpha-20)', color: 'var(--accent-primary)', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '4px' }}
                   title="Copy password"
                 >
-                  {copied ? '✅ Copied' : '📋 Copy'}
+                  {copied ? '✅' : '📋'} <span className="hide-on-mobile">{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>
@@ -341,12 +343,14 @@ export default function VaultItemCard({ item, onOpen, onDelete, isSelected = fal
       </div>
 
       {/* Card header */}
-      <div className="card-header" style={{ paddingLeft: (isSelectionMode || isSelected) ? 40 : 16, transition: 'padding 0.2s' }}>
-        <div className="card-meta">
+      <div className="card-header" style={{ position: 'relative', paddingLeft: (isSelectionMode || isSelected) ? 40 : 16, transition: 'padding 0.2s' }}>
+        <div className="card-meta" style={{ flex: 1, minWidth: 0 }}>
           <span className={typeBadgeClass}>{isPassword ? 'password' : item.type}</span>
-          <span className="card-time">{formatDate(item.createdAt)}</span>
         </div>
-        <div className="card-actions">
+        <div style={{ marginLeft: 'auto', whiteSpace: 'nowrap', fontSize: '11px', color: 'var(--text-muted)', zIndex: 1 }}>
+          {formatDate(item.createdAt)}
+        </div>
+        <div className="card-actions" style={{ position: 'absolute', right: 16, top: 12, background: 'var(--bg-card)', paddingLeft: 12, zIndex: 2 }}>
           <button
             className="btn-icon"
             style={{ padding: '4px 8px', fontSize: 13, opacity: item.isPinned ? 1 : 0.4 }}
