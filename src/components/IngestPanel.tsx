@@ -203,7 +203,7 @@ export default function IngestPanel({ onClose, onSuccess, initialContent = '', i
         <>
           <input
             id="ingest-password-name"
-            className="ingest-input"
+            className="ingest-input mobile-full-width"
             placeholder="Account Name (e.g. Gmail)"
             value={passwordName}
             onChange={(e) => setPasswordName(e.target.value)}
@@ -211,7 +211,7 @@ export default function IngestPanel({ onClose, onSuccess, initialContent = '', i
             autoFocus
             style={{ width: `max(40%, ${passwordName.length + 2}ch)`, maxWidth: '100%', transition: 'width 0.1s' }}
           />
-          <div style={{ position: 'relative', marginTop: 12, width: `max(40%, ${passwordValue.length + 4}ch)`, maxWidth: '100%', transition: 'width 0.1s' }}>
+          <div className="mobile-full-width" style={{ position: 'relative', marginTop: 12, width: `max(40%, ${passwordValue.length + 4}ch)`, maxWidth: '100%', transition: 'width 0.1s' }}>
             <input
               id="ingest-password-value"
               className="ingest-input"
