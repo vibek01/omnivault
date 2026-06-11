@@ -222,15 +222,15 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           {hasCreds && (
             <div 
               style={{ 
-                display: 'flex', alignItems: 'center', gap: '16px', 
+                display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
                 background: 'var(--accent-primary-alpha-10)', border: '1px solid var(--accent-primary-alpha-40)',
-                padding: '16px 20px', borderRadius: '12px', marginTop: '8px'
+                padding: '16px', borderRadius: '12px', marginTop: '8px'
               }}
             >
-              <span style={{ fontSize: '13px', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>🔑 Password</span>
+              <span style={{ fontSize: '13px', color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600, flexShrink: 0 }}>🔑 Password</span>
               {item.metadata.credentials?.username && (
-                <div>
-                  <span style={{ fontSize: '14px', fontFamily: 'monospace', color: 'var(--text-primary)' }}>
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                  <span style={{ fontSize: '14px', fontFamily: 'monospace', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                     {item.metadata.credentials.username}
                   </span>
                 </div>
@@ -243,7 +243,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
                   setTimeout(() => setCopied(false), 2000)
                 }} 
                 className="btn-primary" 
-                style={{ marginLeft: 'auto', fontSize: '13px', padding: '6px 16px', borderRadius: '100px', border: 'none' }}
+                style={{ marginLeft: 'auto', fontSize: '13px', padding: '6px 16px', borderRadius: '100px', border: 'none', flexShrink: 0 }}
                 title="Copy password"
               >
                 {copied ? '✅ Copied!' : '📋 Copy Password'}
@@ -331,9 +331,9 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
           ▶
         </button>
       )}
-      <div className="modal">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '32px 32px 0 32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div className="modal" style={{ width: '100%', maxWidth: 800, margin: '16px' }}>
+        <div className="item-modal-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
             <span className={`type-badge type-badge-${item.type}`}>{item.type}</span>
             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
               {new Date(item.createdAt).toLocaleDateString('en-IN', {
@@ -342,7 +342,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
               })}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <select
               className="ingest-input"
               style={{ width: 'auto', padding: '4px 8px', fontSize: 12, height: 28, margin: 0, backgroundColor: 'var(--input-bg)' }}
@@ -393,7 +393,7 @@ export default function ItemModal({ item, onClose, onUpdate, folders = [], onNex
             </button>
           </div>
         </div>
-        <div className="modal-body" style={{ padding: '32px' }}>
+        <div className="item-modal-body modal-body">
           {renderBody()}
 
           {item.tags && item.tags.length > 0 && (
